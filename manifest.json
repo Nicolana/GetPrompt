@@ -1,0 +1,19 @@
+{
+  "name": "gptPrompt",
+  "id": "1286910381317780543",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [
+    "inspect"
+  ],
+  "enableProposedApi": false,
+  "editorType": [
+    "dev"
+  ],
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  }
+}
