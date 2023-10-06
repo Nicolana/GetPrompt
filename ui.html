@@ -4,13 +4,71 @@
   the file.
 </p>
 <p>ID of selection is:</p>
-<p id="selection"></p>
-
+<textarea
+  id="selection"
+  ame="w3review"
+  rows="16"
+  style="width: 100%"
+></textarea>
+<div>Content Length: <span id="content-length">0</span></div>
+<button style="margin-top: 10px" id="copyButton">复制</button>
 <script>
+  function copyToClipboard(text, callback) {
+    // 创建一个临时的textarea元素
+    var textarea = document.createElement("textarea");
+    textarea.value = text;
+
+    // 将textarea元素添加到DOM中
+    document.body.appendChild(textarea);
+
+    // 选择文本域中的文本
+    textarea.select();
+    textarea.setSelectionRange(0, 99999); // 兼容移动设备
+
+    try {
+      // 尝试执行复制命令
+      var successful = document.execCommand("copy");
+      if (successful) {
+        // 如果复制成功，调用回调函数，并传递true作为参数
+        callback(true);
+      } else {
+        // 如果复制失败，调用回调函数，并传递false作为参数
+        callback(false);
+      }
+    } catch (err) {
+      // 捕获异常，调用回调函数，并传递false作为参数
+      callback(false);
+    } finally {
+      // 移除临时的textarea元素
+      document.body.removeChild(textarea);
+    }
+  }
+
+  function copyContent() {
+    const text = document.getElementById("selection").value;
+
+    copyToClipboard(text, (status) => {
+      if (status) {
+        alert("复制成功");
+      } else {
+        alert("复制失败");
+      }
+    });
+  }
+
+  document.getElementById("copyButton").addEventListener("click", () => {
+    copyContent();
+  });
+
   onmessage = (event) => {
-    // document.getElementById("selection").innerHTML = event.data.pluginMessage[0]
-    //   ? JSON.stringify(event.data)
-    //   : "No selection";
-    document.getElementById("selection").innerHTML = JSON.stringify(event.data);
+    const pluginMessage = event.data.pluginMessage[0]
+      ? JSON.stringify(event.data.pluginMessage[0])
+      : null;
+
+    document.getElementById("selection").value = pluginMessage
+      ? pluginMessage
+      : "No selection";
+    document.getElementById("content-length").innerHTML =
+      pluginMessage?.length ?? 0;
   };
 </script>

@@ -79,14 +79,10 @@ function traverse(node: SceneNode, text: string[]) {
 figma.on("selectionchange", () => {
   const widgets = figma.currentPage.selection;
   console.log("widgets =", widgets);
-  figma.ui.postMessage(widgets);
   const res: any[] = [];
   let text: string[] = [];
   for (const item of widgets) {
     res.push(traverse(item, text));
   }
-  // console.log(text.join(""));
-  // console.log(text.join("").length);
-  console.log(JSON.stringify(res));
-  console.log(JSON.stringify(res).length);
+  figma.ui.postMessage(res);
 });
