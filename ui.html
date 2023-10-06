@@ -87,10 +87,9 @@
   });
 
   onmessage = (event) => {
-    const pluginMessage = event.data.pluginMessage
-      ? event.data.pluginMessage
-      : // JSON.stringify(event.data.pluginMessage[0])
-        null;
+    const pluginMessage = event.data.pluginMessage[0]
+      ? JSON.stringify(event.data.pluginMessage[0])
+      : null;
 
     document.getElementById("selection").value = pluginMessage
       ? PromptTemplate.replace("[PROMPT]", pluginMessage)
