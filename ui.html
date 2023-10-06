@@ -1,16 +1,13 @@
-<h2>Selection Change Observer</h2>
-<p>
-  Observe the contents of figma.selection change as you change the selection in
-  the file.
-</p>
-<p>ID of selection is:</p>
+<h2>提示词生成</h2>
+<p>自动根据UI类型，生成不同的提示词（目前仅支持Table）</p>
+<p>提示词：</p>
 <textarea
   id="selection"
   ame="w3review"
   rows="16"
   style="width: 100%"
 ></textarea>
-<div>Content Length: <span id="content-length">0</span></div>
+<div>文本长度: <span id="content-length">0</span> characters</div>
 <button style="margin-top: 10px" id="copyButton">复制</button>
 <script>
   function copyToClipboard(text, callback) {
@@ -55,20 +52,51 @@
       }
     });
   }
+  const PromptTemplate = `
+  请给按照模板结构给文本生成摘要,没有的结构则不生成
+  模板：
+  """
+  标题区域：
+  标题(head or header name):{标题}
 
+  页面内容区域：
+
+  页面菜单区域：
+  - {标签页1}: {characters}
+  - {标签页2}: {characters}
+
+  筛选区域：
+  - {字段}: {筛选类型}
+
+  表格操作区域：
+  - {操作按钮}
+
+  表格或者表格区域：
+  - {表头字段}:{表头字段宽度}:{根据内容推断的表头字段类型}，排序：{是否带排序},示例数据：[{示例数据}]
+
+  页码：
+  - {分页信息}
+  """
+  文本：
+  '''
+  [PROMPT]
+  '''
+  `;
   document.getElementById("copyButton").addEventListener("click", () => {
     copyContent();
   });
 
   onmessage = (event) => {
-    const pluginMessage = event.data.pluginMessage[0]
-      ? JSON.stringify(event.data.pluginMessage[0])
-      : null;
+    const pluginMessage = event.data.pluginMessage
+      ? event.data.pluginMessage
+      : // JSON.stringify(event.data.pluginMessage[0])
+        null;
 
     document.getElementById("selection").value = pluginMessage
-      ? pluginMessage
+      ? PromptTemplate.replace("[PROMPT]", pluginMessage)
       : "No selection";
-    document.getElementById("content-length").innerHTML =
-      pluginMessage?.length ?? 0;
+    document.getElementById("content-length").innerHTML = pluginMessage
+      ? PromptTemplate.replace("[PROMPT]", pluginMessage)?.length
+      : 0;
   };
 </script>
