@@ -11,7 +11,15 @@ figma.showUI(__html__);
 
 function getInstanceReturn(instance: any, text: string[]) {
   if (instance.name === "SDS/table/head (legacy)") {
-    text.push(`${instance.name}:${instance.width} \n`);
+    text.push(`宽度:${instance.width} \n`);
+    return {
+      name: instance.name,
+      type: instance.type,
+      width: instance.width,
+    };
+  }
+  if (instance.name === "SDS/table/head") {
+    text.push(`宽度:${instance.width} \n`);
     return {
       name: instance.name,
       type: instance.type,
@@ -75,6 +83,7 @@ function traverse(node: SceneNode, text: string[]) {
   return res;
 }
 
+
 // This monitors the selection changes and posts the selection to the UI
 figma.on("selectionchange", () => {
   const widgets = figma.currentPage.selection;
@@ -84,5 +93,6 @@ figma.on("selectionchange", () => {
   for (const item of widgets) {
     res.push(traverse(item, text));
   }
+  // figma.ui.postMessage(text.join(""));
   figma.ui.postMessage(res);
 });

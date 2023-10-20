@@ -52,6 +52,28 @@
       }
     });
   }
+
+  const TablePromptTemplate = `
+  请给根据规则按照模板结构给文本生成摘要
+  规则：
+  1.不要示例数据
+
+  模板：
+  """
+
+  表格或者表格区域：
+
+  - {表头字段}: {表头宽度}: 示例数据: [{示例数据}]
+
+  """
+
+  文本：
+  '''
+  [PROMPT]
+  '''
+  `
+
+
   const PromptTemplate = `
   请给按照模板结构给文本生成摘要,没有的结构则不生成
   模板：
@@ -71,8 +93,8 @@
   表格操作区域：
   - {操作按钮}
 
-  表格或者表格区域：
-  - {表头字段}:{表头字段宽度}:{根据内容推断的表头字段类型}，排序：{是否带排序},示例数据：[{示例数据}]
+  表格或者表格区域或者header：
+  - {表头字段}:{宽度}:{根据内容推断的表头字段类型}，排序：{是否带排序},示例数据：[{示例数据}]
 
   页码：
   - {分页信息}
@@ -86,16 +108,22 @@
     copyContent();
   });
 
+  const formatPrompt = (variable) => {
+    return TablePromptTemplate.replace("[PROMPT]", variable)
+  }
+
   onmessage = (event) => {
     const pluginMessage = event.data.pluginMessage[0]
       ? JSON.stringify(event.data.pluginMessage[0])
       : null;
+    // const pluginMessage = event.data.pluginMessage;
 
     document.getElementById("selection").value = pluginMessage
-      ? PromptTemplate.replace("[PROMPT]", pluginMessage)
+      ? formatPrompt(pluginMessage)
       : "No selection";
+
     document.getElementById("content-length").innerHTML = pluginMessage
-      ? PromptTemplate.replace("[PROMPT]", pluginMessage)?.length
+      ? formatPrompt(pluginMessage)?.length
       : 0;
   };
 </script>
