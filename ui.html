@@ -53,6 +53,11 @@
     });
   }
 
+  const SimpleTemplate = `
+  表格或者表格区域：
+  [PROMPT]
+  `
+
   const TablePromptTemplate = `
   请给根据规则按照模板结构给文本生成摘要
   规则：
@@ -109,7 +114,7 @@
   });
 
   const formatPrompt = (variable) => {
-    return TablePromptTemplate.replace("[PROMPT]", variable)
+    return SimpleTemplate.replace("[PROMPT]", variable)
   }
 
   onmessage = (event) => {
