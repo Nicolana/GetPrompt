@@ -113,10 +113,10 @@
   }
 
   onmessage = (event) => {
-    const pluginMessage = event.data.pluginMessage[0]
-      ? JSON.stringify(event.data.pluginMessage[0])
-      : null;
-    // const pluginMessage = event.data.pluginMessage;
+    // const pluginMessage = event.data.pluginMessage[0]
+    //   ? JSON.stringify(event.data.pluginMessage[0])
+    //   : null;
+    const pluginMessage = event.data.pluginMessage;
 
     document.getElementById("selection").value = pluginMessage
       ? formatPrompt(pluginMessage)

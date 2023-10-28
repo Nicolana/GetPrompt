@@ -83,16 +83,71 @@ function traverse(node: SceneNode, text: string[]) {
   return res;
 }
 
+type FigmaNode = SceneNode & { children?: SceneNode[] }
 
-// This monitors the selection changes and posts the selection to the UI
+/**
+ * 获取节点下的Text，忽略其他数据
+ * @param node 获
+ */
+const GetNodeText = (node: FigmaNode): string | null => {
+  if (node.type === 'TEXT') {
+    return node.characters ?? ''
+  }
+
+  if (node.children) {
+    for (const subNode of node.children) {
+      const text = GetNodeText(subNode as FigmaNode);
+      if (text) {
+        return text
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * 用于递归的处理节点的逻辑
+ * @param node 
+ * @returns 
+ */
+const GetNodeInfo = (node: FigmaNode) => {
+  // 定义返回的边界条件
+  if (node.type === 'INSTANCE') {
+    if (node.name.includes('SDS/table/head')) {
+      const headText = GetNodeText(node);
+      if (!headText) {
+        return null;
+      }
+      return `]\nhead=${headText}, headWith=${node.width}, data =[`;
+    }
+    if (node.name.includes('SDS/table/cell')) {
+      return `${GetNodeText(node)}`;
+    }
+  }
+  let text = '';
+
+  if (node.children) {
+    text += node.children?.map(item => GetNodeInfo(item as FigmaNode));
+  }
+
+  return text;
+}
+
+const GetTableColumns = (nodes: FigmaNode[]) => {
+  let text = '';
+  for (const node of nodes) {
+    const nodeText = GetNodeInfo(node);
+    if (!nodeText) {
+      continue
+    }
+    text += nodeText
+  }
+  console.log("Text =", text);
+  return text?.replace(']', '') + ']';
+}
+
 figma.on("selectionchange", () => {
   const widgets = figma.currentPage.selection;
-  console.log("widgets =", widgets);
-  const res: any[] = [];
-  let text: string[] = [];
-  for (const item of widgets) {
-    res.push(traverse(item, text));
-  }
-  // figma.ui.postMessage(text.join(""));
-  figma.ui.postMessage(res);
+  figma.ui.postMessage(GetTableColumns(widgets as FigmaNode[]));
+  // figma.ui.postMessage(res);
 });
