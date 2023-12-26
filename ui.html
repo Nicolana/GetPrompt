@@ -53,68 +53,12 @@
     });
   }
 
-  const SimpleTemplate = `
-  表格或者表格区域：
-  [PROMPT]
-  `
-
-  const TablePromptTemplate = `
-  请给根据规则按照模板结构给文本生成摘要
-  规则：
-  1.不要示例数据
-
-  模板：
-  """
-
-  表格或者表格区域：
-
-  - {表头字段}: {表头宽度}: 示例数据: [{示例数据}]
-
-  """
-
-  文本：
-  '''
-  [PROMPT]
-  '''
-  `
-
-
-  const PromptTemplate = `
-  请给按照模板结构给文本生成摘要,没有的结构则不生成
-  模板：
-  """
-  标题区域：
-  标题(head or header name):{标题}
-
-  页面内容区域：
-
-  页面菜单区域：
-  - {标签页1}: {characters}
-  - {标签页2}: {characters}
-
-  筛选区域：
-  - {字段}: {筛选类型}
-
-  表格操作区域：
-  - {操作按钮}
-
-  表格或者表格区域或者header：
-  - {表头字段}:{宽度}:{根据内容推断的表头字段类型}，排序：{是否带排序},示例数据：[{示例数据}]
-
-  页码：
-  - {分页信息}
-  """
-  文本：
-  '''
-  [PROMPT]
-  '''
-  `;
   document.getElementById("copyButton").addEventListener("click", () => {
     copyContent();
   });
 
   const formatPrompt = (variable) => {
-    return SimpleTemplate.replace("[PROMPT]", variable)
+    return variable
   }
 
   onmessage = (event) => {

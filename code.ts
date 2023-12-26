@@ -9,145 +9,125 @@
 // This shows the HTML page in "ui.html".
 figma.showUI(__html__);
 
-function getInstanceReturn(instance: any, text: string[]) {
-  if (instance.name === "SDS/table/head (legacy)") {
-    text.push(`宽度:${instance.width} \n`);
-    return {
-      name: instance.name,
-      type: instance.type,
-      width: instance.width,
-    };
-  }
-  if (instance.name === "SDS/table/head") {
-    text.push(`宽度:${instance.width} \n`);
-    return {
-      name: instance.name,
-      type: instance.type,
-      width: instance.width,
-    };
-  }
-  if (instance.name === "SDS/tabItem") {
-    text.push(`${instance.name}:${instance.width} \n`);
-    return {
-      name: instance.name,
-      type: instance.type,
-      width: instance.width,
-    };
-  }
-  // if (instance.name === "SDS/table/cell") {
-  //   text.push(`${instance.name}\n`);
-  //   return {
-  //     name: instance.name,
-  //     type: instance.type,
-  //   };
-  // }
-  // text.push(`${instance.name}:${instance.width} \n`);
-  return {
-    name: instance.name,
-    type: instance.type,
-  };
-}
+type FigmaNode = SceneNode & { children?: SceneNode[] };
 
-function getReturnByType(node: SceneNode, text: string[]) {
-  switch (node.type) {
-    case "TEXT":
-      text.push(`${node.name}:${node.characters} \n`);
-      return {
-        name: node.name,
-        type: node.type,
-        characters: node.characters,
-      };
-    case "INSTANCE":
-      return getInstanceReturn(node, text);
+const ParseNodes = (nodes: FigmaNode[]): string | null => {
+  if (!nodes) {
+    return null;
   }
-  text.push(`${node.name}:\n`);
-  return {
-    name: node.name,
-    type: node.type,
-  };
-}
-
-function traverse(node: SceneNode, text: string[]) {
-  const children = [];
-  if ("children" in node) {
-    for (const child of node.children) {
-      children.push(traverse(child, text));
+  let text = "";
+  let index = 0;
+  for (const subNode of nodes) {
+    if (Array.isArray(subNode)) {
+      return ParseNodes(subNode);
+    }
+    const subNodeText = GetNodeText(subNode as FigmaNode);
+    if (subNodeText) {
+      text += `${index > 0 ? " " : ""}${subNodeText}`;
+      index++;
     }
   }
-  const res = {
-    ...getReturnByType(node, text),
-  };
-  if (children.length > 0) {
-    res.children = children;
-  }
-  return res;
-}
-
-type FigmaNode = SceneNode & { children?: SceneNode[] }
+  console.log("Text =", text);
+  return text;
+};
 
 /**
  * 获取节点下的Text，忽略其他数据
  * @param node 获
  */
 const GetNodeText = (node: FigmaNode): string | null => {
-  if (node.type === 'TEXT') {
-    return node.characters ?? ''
+  if (node.type === "TEXT") {
+    return node.characters ?? "";
+  }
+
+  if (node.name.includes('图标')) {
+    return `(${node.name})` ?? "";
   }
 
   if (node.children) {
+    let text = "";
+    let index = 0;
     for (const subNode of node.children) {
-      const text = GetNodeText(subNode as FigmaNode);
-      if (text) {
-        return text
+      if (Array.isArray(subNode)) {
+        return ParseNodes(subNode);
+      }
+      const subNodeText = GetNodeText(subNode as FigmaNode);
+      if (subNodeText) {
+        text += `${index > 0 ? " " : ""}${subNodeText}`;
+        index++;
       }
     }
+    return text;
   }
-  return null
-}
+  return null;
+};
 
 /**
  * 用于递归的处理节点的逻辑
- * @param node 
- * @returns 
+ * @param node
+ * @returns
  */
 const GetNodeInfo = (node: FigmaNode) => {
   // 定义返回的边界条件
-  if (node.type === 'INSTANCE') {
-    if (node.name.includes('SDS/table/head')) {
-      const headText = GetNodeText(node);
-      if (!headText) {
-        return null;
-      }
-      return `]\nhead=${headText}, headWith=${node.width}, data =[`;
+  if (node.name.includes("SDS/table/head")) {
+    const headText = GetNodeText(node);
+    if (!headText) {
+      return null;
     }
-    if (node.name.includes('SDS/table/cell')) {
-      return `${GetNodeText(node)}`;
-    }
+    return `]\nhead=${headText}, headWith=${node.width}, data =[`;
   }
-  let text = '';
+  if (node.name.includes("SDS/table/cell")) {
+    const cellText = GetNodeText(node);
+    if (!cellText) {
+      return cellText;
+    }
+    return `${cellText}`;
+  }
+  const inputRegex = /SDS\/input/
+  if (inputRegex.test(node.name)) {
+    const inputText = GetNodeText(node);
+    if (!inputText) {
+      return null;
+    }
+    return `]\n${inputText}`;
+  }
+
+  if (node.name === "筛选区") {
+    const filterInfo = node.children?.map(filterItem => GetNodeText(filterItem as FigmaNode))?.filter(item => item).join(',');
+    return `筛选区: [${filterInfo}]`
+  }
+
+  if (node.name === 'table') {
+    let tableText = "\nTABLE: \n"
+    tableText += node.children?.map((item) => GetNodeInfo(item as FigmaNode))?.filter(item => item).join(',');
+    return tableText
+  }
+
+  let text = "";
 
   if (node.children) {
-    text += node.children?.map(item => GetNodeInfo(item as FigmaNode));
+    text += node.children?.map((item) => GetNodeInfo(item as FigmaNode))?.filter(item => item).join(',');
   }
 
   return text;
-}
+};
 
 const GetTableColumns = (nodes: FigmaNode[]) => {
-  let text = '';
+  let text = "";
   for (const node of nodes) {
     const nodeText = GetNodeInfo(node);
     if (!nodeText) {
-      continue
+      continue;
     }
-    text += nodeText
+    text += nodeText;
   }
-  console.log("Text =", text);
-  return text?.replace(']', '') + ']';
-}
+  return text?.replace("]", "") + "]";
+};
 
 figma.on("selectionchange", () => {
   const widgets = figma.currentPage.selection;
+  console.log(widgets)
+  // console.log("widgets =", GetNodeText(widgets?.[0]));
   figma.ui.postMessage(GetTableColumns(widgets as FigmaNode[]));
   // figma.ui.postMessage(res);
 });
