@@ -11,9 +11,11 @@ figma.showUI(__html__);
 
 type FigmaNode = SceneNode & { children?: SceneNode[] };
 
-const ParseNodes = (nodes: FigmaNode[]): string | null => {
+const padding = 8; // table cell padding
+
+const ParseNodes = (nodes: FigmaNode[]): string | undefined => {
   if (!nodes) {
-    return null;
+    return;
   }
   let text = "";
   let index = 0;
@@ -27,17 +29,40 @@ const ParseNodes = (nodes: FigmaNode[]): string | null => {
       index++;
     }
   }
-  console.log("Text =", text);
+  // console.log("Text =", text);
   return text;
 };
+
+const parseInstanceNode = (node: FigmaNode): string | undefined => {
+  if (/(SDS\/table\/cell|SDS\/table\/head)/.test(node.name)) {
+    // Table 组件
+    return node.children?.map(item => GetNodeText(item as FigmaNode))?.filter(item => item).join(',');
+  }
+
+  if (/tag\/.*/.test(node.name)) {
+    // Tag 组件
+    const tagText = node.children?.map(item => GetNodeText(item as FigmaNode))?.filter(item => item).join(',');
+    return `tag[text=${tagText}]`;
+  }
+
+  return node.name;
+}
 
 /**
  * 获取节点下的Text，忽略其他数据
  * @param node 获
  */
-const GetNodeText = (node: FigmaNode): string | null => {
+const GetNodeText = (node: FigmaNode): string | undefined => {
+  if (!node.visible) {
+    // 忽略隐藏节点数据
+    return ""
+  }
   if (node.type === "TEXT") {
     return node.characters ?? "";
+  }
+
+  if (node.type === "INSTANCE") {
+    return parseInstanceNode(node);
   }
 
   if (node.name.includes('图标')) {
@@ -59,8 +84,18 @@ const GetNodeText = (node: FigmaNode): string | null => {
     }
     return text;
   }
-  return null;
+  return;
 };
+
+/**
+ * 根据组件名称及组件的属性，生成组件的提示词
+ * @param node 
+ * @returns 
+ */
+const parseComponent = (node: FigmaNode): string | null => {
+
+  return "";
+}
 
 /**
  * 用于递归的处理节点的逻辑
@@ -74,14 +109,21 @@ const GetNodeInfo = (node: FigmaNode) => {
     if (!headText) {
       return null;
     }
-    return `]\nhead=${headText}, headWith=${node.width}, data =[`;
+    const tableCells = [];
+    for (const tableCellNode of node.parent?.children?.slice(1, 5)!) {
+      tableCells.push(GetNodeText(tableCellNode as FigmaNode))
+    }
+    const tableCellData = tableCells?.filter(item => item).join(',');
+    const headWidth = node.width - padding * 2;
+    return `\nhead=${headText}, headWith=${headWidth}, data =[${tableCellData}]`;
   }
   if (node.name.includes("SDS/table/cell")) {
-    const cellText = GetNodeText(node);
-    if (!cellText) {
-      return cellText;
-    }
-    return `${cellText}`;
+    return
+    // const cellText = GetNodeText(node);
+    // if (!cellText) {
+    //   return cellText;
+    // }
+    // return `${cellText}`;
   }
   const inputRegex = /SDS\/input/
   if (inputRegex.test(node.name)) {
@@ -97,13 +139,11 @@ const GetNodeInfo = (node: FigmaNode) => {
     return `筛选区: [${filterInfo}]`
   }
 
-  if (node.name === 'table') {
-    let tableText = "\nTABLE: \n"
-    tableText += node.children?.map((item) => GetNodeInfo(item as FigmaNode))?.filter(item => item).join(',');
-    return tableText
-  }
-
   let text = "";
+
+  if (node.name === 'table') {
+    text = "\nTABLE: \n"
+  }
 
   if (node.children) {
     text += node.children?.map((item) => GetNodeInfo(item as FigmaNode))?.filter(item => item).join(',');
@@ -112,22 +152,24 @@ const GetNodeInfo = (node: FigmaNode) => {
   return text;
 };
 
-const GetTableColumns = (nodes: FigmaNode[]) => {
+const TraverseNodes = (nodes: FigmaNode[]) => {
   let text = "";
   for (const node of nodes) {
+    if (!node.visible) {
+      continue;
+    }
     const nodeText = GetNodeInfo(node);
     if (!nodeText) {
       continue;
     }
     text += nodeText;
   }
-  return text?.replace("]", "") + "]";
+  // return text?.replace("]", "") + "]";
+  return text;
 };
 
 figma.on("selectionchange", () => {
   const widgets = figma.currentPage.selection;
   console.log(widgets)
-  // console.log("widgets =", GetNodeText(widgets?.[0]));
-  figma.ui.postMessage(GetTableColumns(widgets as FigmaNode[]));
-  // figma.ui.postMessage(res);
+  figma.ui.postMessage(TraverseNodes(widgets as FigmaNode[]));
 });
